@@ -187,6 +187,9 @@ class Agent(object):
 		epdlogp = 	np.vstack(self._dlogps)
 		epr = 		np.vstack(self._drs)
 
+		reward_sum = np.sum(self._drs)
+		print reward_sum
+		self.recordings.append(reward_sum)
 		self._xs, self._hs, self._dlogps, self._drs = [],[],[],[] # reset array memory
 
 
@@ -213,6 +216,7 @@ class Agent(object):
 		if self._episode_nbr % 50 == 0:
 			self.save_model()
 			self.save_recordings()
+			self.print_status(reward_sum)
 
 	def update_model(self):
 		for k,v in self.model.iteritems():
@@ -232,13 +236,10 @@ class Agent(object):
 			param += -0.01 * dparam / np.sqrt(mem + 1e-8) # adagrad update
 
 	def save_model(self):
-		if not os.path.isfile(self.model_file):
-			open( self.model_file, 'wb' ).close()
-
 		pickle.dump(self.model, open(self.model_file, 'wb'))
 
 	def save_recordings(self):
-		if not os.path.isfile(self.recording_file):
-			open( self.model_file, 'wb').close()
-
 		pickle.dump(self.recordings, open(self.recording_file, 'wb'))
+
+	def print_status(self, reward):
+		print "Episode {} finished with reward {}".format(len(self.recordings), reward)
