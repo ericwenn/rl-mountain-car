@@ -1,7 +1,8 @@
 import cPickle as pickle
 import numpy as np
+import os
 class Agent(object):
-	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file):
+	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file, update_method):
 
 		# Number of inputs
 		self.inputs = inputs;
@@ -26,8 +27,7 @@ class Agent(object):
 		# Our model, containing weights
 		self.model = None
 
-		# Name of file where to save our model
-		self.model_file = model_file
+
 
 		# Counter of current episode number
 		self._episode_nbr = 0
@@ -41,13 +41,36 @@ class Agent(object):
 		# Past rewards
 		self._drs = []
 
+		# which update method to use [adagrad, rmsprop]
+		self._update_method = update_method
+
+		self.model_folder = "models"
+		self.recording_folder = "recordings"
+
+		# Name of file where to save our model
+		self.model_file = self.model_folder + "/" + model_file
+
+
+		# Name of file where to save model recordings
+		self.recording_file = self.recording_folder + "/" + model_file
+
+
+		self.recordings = []
+
+
 
 	def load_model( self ):
-		if( self.model == None ):
-			self.model = pickle.load(open(self.model_file, 'rb'))
+		if os.path.isfile(self.model_file):
+			if( self.model == None ):
+				self.model = pickle.load(open(self.model_file, 'rb'))
+				print "Model loaded from "+self.model_file
+
+				self.recordings = pickle.load(open(self.recording_file, 'rb'))
+			else:
+				print "Model already initialized."
+				exit()
 		else:
-			print "Model already initialized."
-			exit()
+			self.new_model()
 
 
 	def new_model(self):
@@ -55,10 +78,20 @@ class Agent(object):
 			self.model = {}
 			self.model['W1'] = np.random.randn(self.inputs, self.hidden_neurons) / np.sqrt(self.inputs) # "Xavier" initialization
 			self.model['W2'] = np.random.randn(self.hidden_neurons, self.outputs) / np.sqrt(self.hidden_neurons)
+
+
+			self.recordings = []
+			self.save_model()
+			self.save_recordings()
 		else:
 			print "Model already initialized."
 			exit()
 
+
+	def init(self):
+		self.init_gradbuffer()
+		self.init_rmscache()
+		self.init_adagrad_mem()
 
 
 	def init_gradbuffer(self):
@@ -171,11 +204,15 @@ class Agent(object):
 
 
 		if self._episode_nbr % self.batch_size == 0:
-			self.update_model_adagrad()
+			if self.update_method == "adagrad":
+				self.update_model_adagrad()
+			else:
+				self.update_model()
 			print self.model
 
-		if self._episode_nbr % 100 == 0:
+		if self._episode_nbr % 50 == 0:
 			self.save_model()
+			self.save_recordings()
 
 	def update_model(self):
 		for k,v in self.model.iteritems():
@@ -195,4 +232,13 @@ class Agent(object):
 			param += -0.01 * dparam / np.sqrt(mem + 1e-8) # adagrad update
 
 	def save_model(self):
+		if not os.path.isfile(self.model_file):
+			open( self.model_file, 'wb' ).close()
+
 		pickle.dump(self.model, open(self.model_file, 'wb'))
+
+	def save_recordings(self):
+		if not os.path.isfile(self.recording_file):
+			open( self.model_file, 'wb').close()
+
+		pickle.dump(self.recordings, open(self.recording_file, 'wb'))

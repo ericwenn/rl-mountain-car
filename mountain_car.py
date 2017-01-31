@@ -2,6 +2,8 @@
 import gym
 from agent import Agent
 import numpy as np
+
+
 game = "MountainCar-v0"
 env = gym.make(game)
 
@@ -15,9 +17,10 @@ gamma = 0.99 # discount factor for reward
 decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
 resume = True   # resume from previous checkpoint?
 render = False
+update_method = "adagrad"
 
 
-agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}.p".format(game, H))
+agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}.p".format(game, H,update_method), update_method)
 
 if resume:
   agent.load_model()
