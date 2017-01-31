@@ -1,2 +1,4 @@
 gym/
 *.pyc
+models/
+recordings/
