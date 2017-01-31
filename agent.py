@@ -204,7 +204,7 @@ class Agent(object):
 
 
 		if self._episode_nbr % self.batch_size == 0:
-			if self.update_method == "adagrad":
+			if self._update_method == "adagrad":
 				self.update_model_adagrad()
 			else:
 				self.update_model()
