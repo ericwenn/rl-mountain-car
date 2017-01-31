@@ -188,7 +188,6 @@ class Agent(object):
 		epr = 		np.vstack(self._drs)
 
 		reward_sum = np.sum(self._drs)
-		print reward_sum
 		self.recordings.append(reward_sum)
 		self._xs, self._hs, self._dlogps, self._drs = [],[],[],[] # reset array memory
 
@@ -211,7 +210,6 @@ class Agent(object):
 				self.update_model_adagrad()
 			else:
 				self.update_model()
-			print self.model
 
 		if self._episode_nbr % 50 == 0:
 			self.save_model()
