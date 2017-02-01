@@ -1,6 +1,8 @@
 import cPickle as pickle
 import numpy as np
 import os
+import time
+
 class Agent(object):
 	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file, update_method):
 
@@ -231,7 +233,7 @@ class Agent(object):
 										[self.grad_buffer['W1'], self.grad_buffer['W2']], 
 										[self.adagrad_mem['W1'], self.adagrad_mem['W2']]):
 			mem += dparam * dparam
-			param += -0.01 * dparam / np.sqrt(mem + 1e-8) # adagrad update
+			param += -0.1 * dparam / np.sqrt(mem + 1e-6) # adagrad update
 
 	def save_model(self):
 		pickle.dump(self.model, open(self.model_file, 'wb'))
@@ -240,4 +242,4 @@ class Agent(object):
 		pickle.dump(self.recordings, open(self.recording_file, 'wb'))
 
 	def print_status(self, reward):
-		print "Episode {} finished with reward {}".format(len(self.recordings), reward)
+		print "Episode {} finished with reward {} [{}]".format(len(self.recordings), reward, time.strftime("%H:%M:%S"))

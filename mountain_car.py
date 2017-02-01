@@ -23,7 +23,7 @@ update_method = "adagrad"
 
 possible_update_methods = ["adagrad", "rmscache"]
 
-opts, args = getopt.getopt(sys.argv[1:], "u:b:l:r:h:")
+opts, args = getopt.getopt(sys.argv[1:], "u:b:l:r:h:g:")
 for opt, arg in opts:
 	if opt == "-u":
 		if arg in possible_update_methods:
@@ -39,6 +39,8 @@ for opt, arg in opts:
 		resume = boolean(arg)
 	elif opt == "-h":
 		H = int(arg)
+	elif opt == "-g":
+		gamma = float(arg)
 
 
 
