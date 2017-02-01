@@ -208,7 +208,7 @@ class Agent(object):
 		if self._episode_nbr % self.batch_size == 0:
 			if self._update_method == "adagrad":
 				self.update_model_adagrad()
-			else:
+			elif self._update_method == "rmscache":
 				self.update_model()
 
 		if self._episode_nbr % 50 == 0:

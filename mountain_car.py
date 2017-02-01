@@ -2,6 +2,7 @@
 import gym
 from agent import Agent
 import numpy as np
+import getopt, sys
 
 
 game = "MountainCar-v0"
@@ -18,6 +19,27 @@ decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
 resume = True   # resume from previous checkpoint?
 render = False
 update_method = "adagrad"
+
+
+possible_update_methods = ["adagrad", "rmscache"]
+
+opts, args = getopt.getopt(sys.argv[1:], "u:b:l:r:")
+for opt, arg in opts:
+	if opt == "-u":
+		if arg in possible_update_methods:
+			update_method = arg
+		else:
+			print "Not a correct update method, uses adagrad instead."
+
+	elif opt == "-b":
+		batch_size = arg
+	elif opt == "-l":
+		learning_rate = float(learning_rate)
+	elif opt == "-r":
+		resume = boolean(arg)
+
+
+
 
 
 agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}.p".format(game, H,update_method), update_method)
