@@ -36,7 +36,7 @@ for opt, arg in opts:
 	elif opt == "-l":
 		learning_rate = float(learning_rate)
 	elif opt == "-r":
-		resume = boolean(arg)
+		resume = arg == "1"
 	elif opt == "-h":
 		H = int(arg)
 	elif opt == "-g":
@@ -46,7 +46,7 @@ for opt, arg in opts:
 
 
 
-agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}.p".format(game, H,update_method), update_method)
+agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}.p".format(game, H,update_method), update_method, game)
 
 if resume:
   agent.load_model()

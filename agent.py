@@ -2,9 +2,11 @@ import cPickle as pickle
 import numpy as np
 import os
 import time
+import json
+import requests
 
 class Agent(object):
-	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file, update_method):
+	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file, update_method, game_name):
 
 		# Number of inputs
 		self.inputs = inputs;
@@ -57,7 +59,19 @@ class Agent(object):
 		self.recording_file = self.recording_folder + "/" + model_file
 
 
-		self.recordings = []
+		self.batch_rewards = []
+
+
+
+		jsonContent = {
+			"problem_name": game_name,
+			"tags": [ update_method, "{}x{}x{}".format(inputs, hidden_neurons, outputs) ],
+			"decay_rate": reward_decay
+		}
+		req = requests.post("https://neural-nets-156616.appspot.com/solutions/", json=jsonContent)
+
+		self.api_id = req.json()['id']
+
 
 
 
@@ -67,7 +81,6 @@ class Agent(object):
 				self.model = pickle.load(open(self.model_file, 'rb'))
 				print "Model loaded from "+self.model_file
 
-				self.recordings = pickle.load(open(self.recording_file, 'rb'))
 			else:
 				print "Model already initialized."
 				exit()
@@ -84,7 +97,6 @@ class Agent(object):
 
 			self.recordings = []
 			self.save_model()
-			self.save_recordings()
 		else:
 			print "Model already initialized."
 			exit()
@@ -190,7 +202,7 @@ class Agent(object):
 		epr = 		np.vstack(self._drs)
 
 		reward_sum = np.sum(self._drs)
-		self.recordings.append(reward_sum)
+		self.batch_rewards.append(reward_sum)
 		self._xs, self._hs, self._dlogps, self._drs = [],[],[],[] # reset array memory
 
 
@@ -215,8 +227,9 @@ class Agent(object):
 
 		if self._episode_nbr % 50 == 0:
 			self.save_model()
-			self.save_recordings()
+			self.upload_progress()
 			self.print_status(reward_sum)
+			self.batch_rewards = []
 
 	def update_model(self):
 		for k,v in self.model.iteritems():
@@ -238,8 +251,11 @@ class Agent(object):
 	def save_model(self):
 		pickle.dump(self.model, open(self.model_file, 'wb'))
 
-	def save_recordings(self):
-		pickle.dump(self.recordings, open(self.recording_file, 'wb'))
+	def upload_progress(self):
+		jsonContent = {
+			"rewards": self.batch_rewards
+		}
+		requests.post("https://neural-nets-156616.appspot.com/solutions/{}".format(self.api_id), json=jsonContent )
 
 	def print_status(self, reward):
 		print "Episode {} finished with reward {} [{}]".format(len(self.recordings), reward, time.strftime("%H:%M:%S"))
