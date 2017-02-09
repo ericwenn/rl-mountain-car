@@ -73,7 +73,17 @@ class Agent(object):
 
 
 		self.firebase = Firebase()
-		self.api_id = self.firebase.createSolution( game_name, [ update_method, "{}x{}x{}".format(inputs, hidden_neurons, outputs) ])
+		config = []
+
+		if( self.biased ):
+			config.append("Biased")
+
+		config.append(update_method)
+		config.append("Network: {}x{}x{}".format(inputs, hidden_neurons, outputs))
+
+		config.append("Reward Decay: {}".format(reward_decay))
+
+		self.api_id = self.firebase.createSolution( game_name, config)
 
 
 
