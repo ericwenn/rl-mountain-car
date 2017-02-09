@@ -4,9 +4,10 @@ import os
 import time
 import json
 import requests
+from firebase import Firebase
 
 class Agent(object):
-	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file, update_method, game_name):
+	def __init__(self, inputs, hidden_neurons, outputs, batch_size, learning_rate, reward_decay, decay_rate, model_file, update_method, game_name, biased):
 
 		# Number of inputs
 		self.inputs = inputs;
@@ -30,6 +31,15 @@ class Agent(object):
 
 		# Our model, containing weights
 		self.model = None
+
+		# Whether to use bias in the layers
+		self.biased = biased
+		if( self.biased ):
+			self.actual_inputs = self.inputs + 1
+			self.actual_hidden_neurons = self.hidden_neurons + 1
+		else:
+			self.actual_inputs = self.inputs
+			self.actual_hidden_neurons = self.hidden_neurons
 
 
 
@@ -62,16 +72,8 @@ class Agent(object):
 		self.batch_rewards = []
 
 
-
-		jsonContent = {
-			"problem_name": game_name,
-			"tags": [ update_method, "{}x{}x{}".format(inputs, hidden_neurons, outputs) ],
-			"decay_rate": reward_decay
-		}
-		req = requests.post("https://neural-nets-156616.appspot.com/solutions/", json=jsonContent)
-
-		self.api_id = req.json()['id']
-
+		self.firebase = Firebase()
+		self.api_id = self.firebase.createSolution( game_name, [ update_method, "{}x{}x{}".format(inputs, hidden_neurons, outputs) ])
 
 
 
@@ -91,8 +93,8 @@ class Agent(object):
 	def new_model(self):
 		if( self.model == None):
 			self.model = {}
-			self.model['W1'] = np.random.randn(self.inputs, self.hidden_neurons) / np.sqrt(self.inputs) # "Xavier" initialization
-			self.model['W2'] = np.random.randn(self.hidden_neurons, self.outputs) / np.sqrt(self.hidden_neurons)
+			self.model['W1'] = np.random.randn(self.actual_inputs, self.hidden_neurons) / np.sqrt(self.actual_inputs) # "Xavier" initialization
+			self.model['W2'] = np.random.randn(self.actual_hidden_neurons, self.outputs) / np.sqrt(self.actual_hidden_neurons)
 
 
 			self.recordings = []
@@ -140,11 +142,17 @@ class Agent(object):
 
 
 	def policy_forward(self, x):
+		
 		""" Calculate probabilites of actions based on observation """
 		if(len(x.shape)==1):
 			x = x[np.newaxis,...]
 
+
 		h = np.dot(x, self.model['W1'])
+		
+		if( self.biased ):
+			h = np.append(h[0], 1)[np.newaxis, ...]
+
 		h[h<0] = 0 # ReLU nonlinearity
 		logp = np.dot(h, self.model['W2'])
 		p = self._softmax(logp)
@@ -155,16 +163,27 @@ class Agent(object):
 	def policy_backward(self, eph, epdlogp, epx):
 		""" backward pass. (eph is array of intermediate hidden states) """
 		dW2 = np.dot(eph.T, epdlogp)
-
 		dh = np.dot(epdlogp, self.model['W2'].T)
 
-
 		dh[eph <= 0] = 0 # backpro prelu
+		
+		if( self.biased ):
+			dh = np.delete(dh, dh.shape[1] - 1, 1)
+
+
+
+
 		dW1 = np.dot(epx.T, dh)
+
+
 		return {'W1':dW1, 'W2':dW2}
 
 
 	def decide_action(self, observation):
+
+		if( self.biased ):
+			observation = np.append(observation, 1)
+
 		probabilites, h = self.policy_forward(observation)
 		rand = np.random.uniform(0, np.sum(probabilites))
 
@@ -195,7 +214,6 @@ class Agent(object):
 
 	def episode_finished(self):
 		self._episode_nbr += 1
-
 		epx = 		np.vstack(self._xs)
 		eph = 		np.vstack(self._hs)
 		epdlogp = 	np.vstack(self._dlogps)
@@ -216,7 +234,9 @@ class Agent(object):
 		epdlogp *= discounted_epr # modulate the gradient with advantage (PG magic happens right here.)
 
 		grad = self.policy_backward(eph, epdlogp, epx)
-		for k in self.model: self.grad_buffer[k] += grad[k] # accumulate grad over batch
+
+		for k in self.model: 
+			self.grad_buffer[k] += grad[k] # accumulate grad over batch
 
 
 		if self._episode_nbr % self.batch_size == 0:
@@ -225,7 +245,7 @@ class Agent(object):
 			elif self._update_method == "rmscache":
 				self.update_model()
 
-		if self._episode_nbr % 50 == 0:
+		if self._episode_nbr % 10 == 0:
 			self.save_model()
 			self.upload_progress()
 			self.print_status(reward_sum)
@@ -252,10 +272,7 @@ class Agent(object):
 		pickle.dump(self.model, open(self.model_file, 'wb'))
 
 	def upload_progress(self):
-		jsonContent = {
-			"rewards": self.batch_rewards
-		}
-		requests.post("https://neural-nets-156616.appspot.com/solutions/{}".format(self.api_id), json=jsonContent )
+		self.firebase.pushRewardsToSolution( self.api_id, self.batch_rewards)
 
 	def print_status(self, reward):
-		print "Episode {} finished with reward {} [{}]".format(len(self.recordings), reward, time.strftime("%H:%M:%S"))
+		print "Episode {} finished with reward {} [{}]".format(self._episode_nbr, reward, time.strftime("%H:%M:%S"))

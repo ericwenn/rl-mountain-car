@@ -19,11 +19,12 @@ decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
 resume = True   # resume from previous checkpoint?
 render = False
 update_method = "adagrad"
+biased = False
 
 
 possible_update_methods = ["adagrad", "rmscache"]
 
-opts, args = getopt.getopt(sys.argv[1:], "u:b:l:r:h:g:")
+opts, args = getopt.getopt(sys.argv[1:], "u:b:l:r:h:g:a:")
 for opt, arg in opts:
 	if opt == "-u":
 		if arg in possible_update_methods:
@@ -41,12 +42,14 @@ for opt, arg in opts:
 		H = int(arg)
 	elif opt == "-g":
 		gamma = float(arg)
+	elif opt == "-a":
+		biased = arg == "1"
 
 
 
 
 
-agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}.p".format(game, H,update_method), update_method, game)
+agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}-B_{}.p".format(game, H,update_method, ("1" if biased else "0")), update_method, game, biased)
 
 if resume:
   agent.load_model()
