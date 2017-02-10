@@ -49,7 +49,7 @@ for opt, arg in opts:
 
 
 
-agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}-B_{}.p".format(game, H,update_method, ("1" if biased else "0")), update_method, game, biased)
+agent = Agent(I, H, O, batch_size, learning_rate, gamma, decay_rate, "{}-H{}-U_{}{}.p".format(game, H,update_method, ("-B_1" if biased else "")), update_method, game, biased)
 
 if resume:
   agent.load_model()

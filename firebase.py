@@ -1,6 +1,6 @@
 import requests
 import datetime
-
+from CurveReducer import CurveReducer
 
 
 class Firebase(object):
@@ -46,11 +46,16 @@ class Firebase(object):
 
 
 	def pushRewardsToSolution( self, solution_id, rewards ):
-
 		res = requests.get( self.url( "rewards/{}.json".format(solution_id)))
 
 		if( not res.json() == None):
-			rewards = list(res.json()) + rewards	
-		
+			rewards = list(res.json()) + rewards
+
+		c = CurveReducer(curveData=rewards, reduceTo=200, parent=self, extra=solution_id)
+		c.start()
+
 		res = requests.put( self.url( "rewards/{}.json".format(solution_id)), json=rewards)
+
+	def thread_callback(self, curve=None, extra=None):
+		res = requests.put( self.url( "trunc_rewards/{}.json".format(extra)), json=curve)
 
