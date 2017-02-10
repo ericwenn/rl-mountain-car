@@ -27,7 +27,7 @@ class CurveReducer(Thread):
 				slices = self.curveData[i*step:(i+1)*step]
 				mean = np.mean(slices)
 				std = np.std(slices)
-				newCurve.append( [mean, mean + std, mean - std])
+				newCurve.append( ["{}-{}".format(i*step, (i+1)*step),mean, mean + std, mean - std])
 
 			remainder = len(self.curveData) % self.reduceTo
 			if( remainder != 0 ):
